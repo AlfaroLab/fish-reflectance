@@ -1,15 +1,18 @@
 ---
-title: "lab-report"
-output: html_document
+title: "lab-report1"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
 date: "2025-03-01"
 ---
 
 
-## feb 28
+## Feb 28
 
-setting up version control and starting to copy over r functions
+Setting up version control and starting to copy over r functions.
 
-
+First step: reading in the data file
 ```{r}
 library(here)
 
@@ -17,7 +20,65 @@ here("/Users/josephdekel/Desktop/UCLA/Winter\ 25/SRP\ 199/Week\ 6", "varied_spec
 
 df <- read.csv("varied_spectra.csv")
 
-
 ```
+I first created synthetic data that would effectively demonstrate how different patches on fish can be distinguished using hyperspectral measurements. The varied_spectra.csv file was designed to contain five measurements per patch type, simulating natural variation while maintaining distinct spectral signatures and characteristic spectral patterns that mirror biological reality.
+
+
+Function to calculate the spectral angle:
+```{r}
+# Calculating spectral angle between two spectra (x and y)
+calc_spectral_angle <- function(x, y) 
+{
+  sum_xy <- sum(x * y)    
+  sum_x2 <- sum(x^2)      
+  sum_y2 <- sum(y^2)
+  alfa <- acos(sum_xy / sqrt(sum_x2 * sum_y2))
+  return(alfa)  # Returning angle in radians
+}
+```
+The code implementation centres around the spectral angle calculation function, which implements the formula from the paper: α = cos⁻¹(ΣXY/√(Σ(X)²Σ(Y)²)). This calculation is crucial for identifying the most representative measurement for each patch type by finding the measurement closest to the mean. The function returns angles in radians, providing a standardized measure of similarity between spectra.
+
+
+First Plot:
+```[r]
+# Creating first plot (initialized with first measurement)
+plot(df[,1], df[,2],       # Plotting wavelength (col 1) vs first measurement (col 2) 
+     type="l",             # Line plot
+     ylim=c(0,100),        # Y-axis from 0 to 100%
+     xlab="Wavelength (nm)", 
+     ylab="Reflectance (%)",
+     main="Patch Measurements and Means")
+
+# Defining colors and patch names for plotting
+colors <- c("black", "blue", "orange", "gray")    # Colour for each patch
+patches <- c("black", "blue", "orange", "white")  # Names of patches
+
+# Ploting all individual measurements for each patch
+for(patch in patches) 
+{
+  patch_cols <- grep(patch, names(df))         # Finding all columns for this patch
+  for(col in patch_cols)                       # Loop through each column of this patch
+    {
+    lines(df[,1], df[,col],                    # Adding line for each measurement
+          col=colors[which(patches == patch)]) # Using corresponding colour
+  }
+}
+
+# Calculating & plotting mean spectra
+means <- data.frame(wavelength = df[,1])        # Creating dataframe for means
+for(patch in patches) 
+{
+  patch_cols <- grep(patch, names(df))          # Finding columns for this patch
+  means[[patch]] <- rowMeans(df[,patch_cols])   # Calculating mean spectrum
+  lines(df[,1], means[[patch]],                 # Plotting mean as thicker line
+        col=colors[which(patches == patch)], 
+        lwd=3)                                  
+}
+
+# Legend for first plot
+legend("topleft", patches, col=colors, lwd=2)
+```
+
+
 
 
