@@ -314,6 +314,31 @@ for(i in 1:length(patch_types))
 print(round(patch_angles, 4))
 ```
 
+The figure above shows:
+
+* A matrix of spectral angles between the mean spectra of different patch types.
+
+* Values range from 0 (identical) to higher values (more different).
+
+What this tells us:
+
+* Black and orange patches are most similar to each other (angle = 0.1224).
+
+* White and orange patches are most different (angle = 0.2131).
+
+* Blue patches are most similar to orange patches (angle = 0.1065).
+
+* White patches are consistently the most different from other patch types.
+
+Importance:
+
+* This quantifies exactly how different each patch type is from the others.
+
+* Shows which patches might be most easily confused with each other.
+
+* Provides a numerical basis for distinguishing patches in classification tasks.
+
+
 ## Calculating within-patch variation
 ```{r}
 # This measures how much variation exists within the same patch type across different individuals
@@ -402,6 +427,8 @@ boxplot(Angle ~ Variation,               # Formula: Angle grouped by Variation t
         col=c("lightblue", "lightgreen"))  
 ```
 
+Within-patch variation is significantly lower than between-patch variation.
+
 ## Calculating summary statistics for variation
 ```{r}
 # Printing summary stats for within-patch variation
@@ -424,6 +451,22 @@ t_result <- t.test(within_all, between_all)
 cat("\nT-test comparing within-patch vs. between-patch variation:\n")
 print(t_result)
 ```
+The figure above shows:
+
+* Results of a t-test comparing within-patch and between-patch angles.
+
+* Extremely significant p-value (3.252e-11) confirming the difference.
+
+* Mean values: within-patch = 0.0629, between-patch = 0.1832.
+
+What this tells us:
+
+* Within-patch variation is significantly lower than between-patch variation.
+
+* The 95% confidence interval for the difference is between 0.092 and 0.148 radians.
+
+* The difference is not due to chance (p << 0.001).
+
 
 ## PLOT 3: Spectral angles heatmap
 ```{r}
@@ -476,6 +519,34 @@ heatmap(angle_matrix,
         col=heat.colors(100)) # Color palette (100 shades)
 ```
 
+The image above shows:
+
+* Hierarchical clustering and heatmap of spectral angles between all individual measurements.
+
+* Darker colors indicate higher similarity (lower spectral angle).
+
+* The tree diagram shows hierarchical relationships based on spectral similarity.
+
+What this tells us:
+
+* Measurements cluster primarily by patch type, not by individual.
+
+* All four orange patches cluster together, as do all black patches.
+
+* Blue patches mostly cluster together (blue_01 is an outlier).
+
+* White patches form a distinct cluster.
+
+Importance:
+
+* Confirms that patch type is the primary determinant of spectral signature.
+
+* Shows that the spectral angle method successfully groups similar patches.
+
+* Identifies potential anomalies (like blue_01) that may need further investigation.
+
+* The hierarchical clustering provides an unbiased grouping method.
+
 ## PLOT 4: Individual variation by patch type
 ```{r}
 # Setting up a 2x2 grid for plotting the 4 patch types
@@ -523,6 +594,32 @@ for(patch in patch_types)
 # Resetting the plotting layout to default (1x1)
 par(mfrow=c(1,1))
 ```
+
+The image above shows:
+
+* Four panels showing individual variation within each patch type.
+
+* Each panel shows spectral curves for each repeat (individual) and the mean.
+
+
+What this tells us:
+
+* Black patches: Relatively consistent across individuals with slight variation around 600nm.
+
+* White patches: Individual 01 shows lower reflectance than others; 02-04 are very similar.
+
+* Orange patches: Individual 01 shows higher reflectance; Individual 03 shows lower reflectance.
+
+* Blue patches: Most variable patch type; Individual 03 shows distinctive peak around 580nm.
+
+Importance:
+
+* Reveals detailed patterns of individual variation within each patch type.
+
+* Shows which patch types are most consistent or variable across individuals.
+
+* Helps identify potentially unusual individuals (e.g., Individual 01 for white patches).
+
 
 ## Summary statistics by patch type and individual
 ```{r}
