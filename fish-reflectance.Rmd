@@ -10,7 +10,7 @@ date: "2025-03-01"
 
 ## Feb 28
 
-# Alfa Angle Calculation and Visualization
+# ***1: Alfa Angle Calculation and Visualization***
 
 ## First step: reading in the data file
 ```{r step1}
@@ -132,15 +132,17 @@ The data processing flow moves systematically from reading the CSV file through 
 
 Colour choices in the visualization match the actual patch colours for intuitive interpretation, with line thickness differentiating means from individual measurements. The y-axis range of 0-100% covers the full possible reflectance range, while the wavelength range matches the visible spectrum. This approach provides a practical demonstration of the spectral analysis methods described in the Piranha paper, allowing both examination of variation within patches and comparison between different patch types.
 
-# Patches Variation Analysis
+# ***2: Patches Variation Analysis***
 
 Trying to explore the methods of using Alfa Angle as a tool for comparing reflectance spectra (as seen in the piranha papaer [insert html]).
 
 This code analyzes Trigger Fish patch spectral data to determine:
-1. Whether we can tell different patch types apart (black, white, orange, blue)
- 2. How much variation exists within patches vs. across individuals
 
-## Reading in data:
+1. Whether we can tell different patch types apart (black, white, orange, blue)
+
+2. How much variation exists within patches vs. across individuals
+
+## Reading in data
 ```{r}
 # =============================================================================
 # Patches Variation Analysis 
@@ -171,7 +173,7 @@ This function calculates the angular difference between two spectral signatures.
 Based on the formula from the piranha paper: α = cos⁻¹(ΣXY/√(Σ(X)²Σ(Y)²)).
 Smaller angles indicate greater similarity between spectra.
 
-## Identifying patch types and individuals for analysis:
+## Identifying patch types and individuals for analysis
 ```{r}
 # Defining our patch types (colors) and individual identifiers (repeats)
 patch_types <- c("black", "white", "orange", "blue")  # The four patch types
