@@ -12,20 +12,20 @@ date: "2025-03-01"
 
 ### Alfa Angle Calculation and Visualization
 
-First step: reading in the data file
-```{r}
+## First step: reading in the data file
+```{r step1}
 library(here)
+here()
+here("Data", "varied_spectra.csv", "pablo_equation_1_transposed.csv" )
 
-here("/Users/josephdekel/Desktop/UCLA/Winter\ 25/SRP\ 199/Week\ 6", "varied_spectra.csv" )
-
-df <- read.csv("varied_spectra.csv")
+df <- read.csv("Data/varied_spectra.csv")
 
 ```
 I first created synthetic data that would effectively demonstrate how different patches on fish can be distinguished using hyperspectral measurements. The varied_spectra.csv file was designed to contain five measurements per patch type, simulating natural variation while maintaining distinct spectral signatures and characteristic spectral patterns that mirror biological reality.
 
 
 Function to calculate the spectral angle:
-```{r}
+```{r step2}
 # Calculating spectral angle between two spectra (x and y)
 calc_spectral_angle <- function(x, y) 
 {
@@ -40,7 +40,7 @@ The code implementation centres around the spectral angle calculation function, 
 
 
 First Plot:
-```{r}
+```{r step3}
 # Creating first plot (initialized with first measurement)
 plot(df[,1], df[,2],       # Plotting wavelength (col 1) vs first measurement (col 2) 
      type="l",             # Line plot
@@ -131,4 +131,118 @@ This plot shows only the representative spectra (those closest to the mean), pro
 The data processing flow moves systematically from reading the CSV file through plotting all measurements, calculating means, finding representative spectra using spectral angles, and finally creating the comparative plots. The implementation uses nested loops for efficiency, with the outer loop processing each patch type and the inner loop handling individual measurements. The grep function identifies relevant columns for each patch type. In the code, the wavelength column positioned first for easy reference.
 
 Colour choices in the visualization match the actual patch colours for intuitive interpretation, with line thickness differentiating means from individual measurements. The y-axis range of 0-100% covers the full possible reflectance range, while the wavelength range matches the visible spectrum. This approach provides a practical demonstration of the spectral analysis methods described in the Piranha paper, allowing both examination of variation within patches and comparison between different patch types.
+
+# Patches Variation Analysis
+
+Trying to explore the methods of using Alfa Angle as a tool for comparing reflectance spectra (as seen in the piranha papaer [insert html]).
+
+This code analyzes Trigger Fish patch spectral data to determine:
+1. Whether we can tell different patch types apart (black, white, orange, blue)
+ 2. How much variation exists within patches vs. across individuals
+
+## Reading in data:
+```{r}
+# =============================================================================
+# Patches Variation Analysis 
+# This code analyzes Trigger Fish patch spectral data to determine:
+# 1. Whether we can tell different patch types apart (black, white, orange, blue)
+# 2. How much variation exists within patches vs. across individuals
+# =============================================================================
+
+df <- read.csv("Data/pablo_equation_1_transposed.csv")
+```
+
+## Defining the spectral angle calculation function
+```{r}
+# This function calculates the angular difference between two spectral signatures
+# Based on the formula from the piranha paper: α = cos⁻¹(ΣXY/√(Σ(X)²Σ(Y)²))
+# Smaller angles indicate greater similarity between spectra
+calc_spectral_angle <- function(x, y) 
+{
+  sum_xy <- sum(x * y)     
+  sum_x2 <- sum(x^2)       
+  sum_y2 <- sum(y^2)       
+  alfa <- acos(sum_xy / sqrt(sum_x2 * sum_y2))
+  
+  return(alfa)  # Return angle in radians
+}
+```
+This function calculates the angular difference between two spectral signatures.
+Based on the formula from the piranha paper: α = cos⁻¹(ΣXY/√(Σ(X)²Σ(Y)²)).
+Smaller angles indicate greater similarity between spectra.
+
+## Identifying patch types and individuals for analysis:
+```{r}
+# Defining our patch types (colors) and individual identifiers (repeats)
+patch_types <- c("black", "white", "orange", "blue")  # The four patch types
+individuals <- c("01", "02", "03", "04")              # The four individuals (repeats)
+
+# =============================================================================
+# Organizing the data by patch type and individual
+# =============================================================================
+# Creating a nested list structure to easily access data:
+# patch_columns$black$01 will contain the spectral data for black patch on individual 01
+patch_columns <- list()
+for(patch in patch_types) 
+{
+  # Creating a sub-list for each patch type
+  patch_columns[[patch]] <- list()
+  
+  # For each individual, finding and storing the corresponding column data
+  for(ind in individuals) 
+  {
+    col_name <- paste0(patch, "_", ind)  # Constructing column name (e.g., "black_01")
+    
+    # Only adding data if the column exists in our dataset
+    if(col_name %in% names(df)) 
+    {
+      patch_columns[[patch]][[ind]] <- df[[col_name]]  # Storing the spectral data
+    }
+  }
+}
+```
+
+## Calculating mean spectra for each patch type
+```{r}
+patch_means <- data.frame(wavelength = df$wavelength)  # Starting with wavelength column
+for(patch in patch_types) 
+{
+  # Combining all measurements for this patch type into a matrix
+  patch_data <- do.call(cbind, patch_columns[[patch]])
+  
+  # Calculating row means (mean reflectance at each wavelength)
+  patch_means[[patch]] <- rowMeans(patch_data, na.rm = TRUE)
+}
+```
+
+## PLOT 1: Mean spectra for each patch type
+```{r}
+# Defining colors for plotting that match the patch types
+colors <- c("black", "gray", "orange", "blue")
+
+# Starting with the first patch (black)
+plot(df$wavelength, patch_means$black, 
+     type="l",                                       # Line plot
+     col=colors[1],                                  # black color
+     lwd=2,                                          
+     ylim=c(0, max(patch_means[,-1], na.rm=TRUE) * 1.1),  # Y-axis range with 10% margin
+     xlab="Wavelength (nm)",                         
+     ylab="Reflectance (%)",                         
+     main="Mean Spectra by Patch Type")              
+
+# Adding lines for the remaining patch types
+for(i in 2:length(patch_types)) 
+{
+  lines(df$wavelength,                     # X values (wavelength)
+        patch_means[[patch_types[i]]],     # Y values (reflectance)
+        col=colors[i],                     # Color corresponding to patch type
+        lwd=2)                             
+}
+
+# Legend to identify each line
+legend("topright",                         
+       patch_types,                        # Labels for legend
+       col=colors,                         # Colors for legend
+       lwd=2)   
+```
 
