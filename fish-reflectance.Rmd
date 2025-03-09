@@ -134,7 +134,7 @@ Colour choices in the visualization match the actual patch colours for intuitive
 
 # ***2: Patches Variation Analysis***
 
-Trying to explore the methods of using Alfa Angle as a tool for comparing reflectance spectra (as seen in the piranha papaer [insert html]).
+Trying to explore the methods of using Alfa Angle as a tool for comparing reflectance spectra (as seen in the piranha paper <https://www.nature.com/articles/s41598-021-95713-0>).
 
 This code analyzes Trigger Fish patch spectral data to determine:
 
@@ -656,4 +656,51 @@ for(ind in individuals)
 }
 ```
 
+# Lab Meeting Notes 6th March 2025
+ 
+* Add a picture of Pablo and of Museum Specimens
+
+* Add accession numbers (specimen number on jar) & year of preservation
+
+* Methods section of how we collected data
+
+* Boxplots illustrating patches variation
+
+  * for each individual, for each patch:
+  x axis has 11 individuals, y axis is the mean and variation in reflectance (over the 5 repeats)
+  (so we need 4 different graphs because there are 4 patches)
+  
+  * 1 plot with 4 boxes (because 4 patches), 4 boxplots in one graph where we take the mean values 
+  get the mean and variance for each patch using the repeats and means from above
+  
+* Do a nested ANOVA on the mean reflectance. Input all of the measures for all of the individuals for all of the patches. 11(individuals) x 5(imaging sessions (repeats)) x 4 (patches) = 220 rows of data.
+Basically: how much variation is being explained by individuals, repeated measures and patch.
+
+# ***3: Patch-Based Statistical Analysis Using Boxplots and Nested ANOVA***
+
+* **Boxplots** were generated to illustrate reflectance variations for each patch.
+
+* A **nested ANOVA** was performed to evaluate the contribution of individuals, repeated measures, and patches to overall reflectance variation.
+
+## Images of Museum Specimens
+
+![All 11 specimens.](./all_museum_specimens.png)
+
+![5 specimens (lettered A through E) preserved in 1969 and Pablo (bottom right) preserved in 2024.](./1969_museum_specimens.png)
+
+![5 specimens (lettered A through E) preserved in 1938.](./1938_museum_specimens.png)
+
+## Imaging Procedure
+
+* Imaging was conducted under controlled lighting conditions.
+
+* To minimize the effect of camera heating on reflectance measurements, we randomized the order in which the 11 fish were imaged at the start of each session.
+
+* For each session, all 11 fish were imaged once.
+
+* After completing the first round of imaging, the hyperspectral camera was turned off and allowed to cool down for 3 minutes.
+
+* After the cooldown period, all 11 fish were imaged again, following the same procedure.
+
+* This process was repeated across a total of 5 imaging sessions, resulting in 5 repeat measurements for each fish.
 
