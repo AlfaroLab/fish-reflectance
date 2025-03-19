@@ -26,7 +26,7 @@ I first created synthetic data that would effectively demonstrate how different 
 
 ## Function to calculate the spectral angle:
 ```{r step2}
-# Calculating spectral angle between two spectra (x and y)
+# Calculating spectral angle between two spectra (x and y)\
 calc_spectral_angle <- function(x, y) 
 {
   sum_xy <- sum(x * y)    
@@ -82,7 +82,7 @@ legend("topleft", patches, col=colors, lwd=2)
 The plot displays all measurements and means, with individual measurements shown as thin lines and means as thicker lines in corresponding colours. This visualization demonstrates the variation within patches while maintaining clear distinction between patch types.
 
 ## Finding representative spectrum (smallest α) for each patch:
-```{r}
+```{r step4}
 # Finding representative spectrum (smallest α) for each patch
 rep_spectra <- data.frame(wavelength = df[,1])  # Creating dataframe for representative spectra (starting with wavelengths)
 for(patch in patches) 
@@ -106,7 +106,7 @@ for(patch in patches)
 ```
 
 ## Second Plot:
-```{r}
+```{r step5}
 # Creating second plot - representative spectra
 plot(rep_spectra$wavelength, rep_spectra$black,   # Initialize with black patch
      type="l", 
@@ -143,7 +143,7 @@ This code analyzes Trigger Fish patch spectral data to determine:
 2. How much variation exists within patches vs. across individuals
 
 ## Reading in data
-```{r}
+```{r step6}
 # =============================================================================
 # Patches Variation Analysis 
 # This code analyzes Trigger Fish patch spectral data to determine:
@@ -155,7 +155,7 @@ df <- read.csv("Data/pablo_equation_1_transposed.csv")
 ```
 
 ## Defining the spectral angle calculation function
-```{r}
+```{r step7}
 # This function calculates the angular difference between two spectral signatures
 # Based on the formula from the piranha paper: α = cos⁻¹(ΣXY/√(Σ(X)²Σ(Y)²))
 # Smaller angles indicate greater similarity between spectra
@@ -174,7 +174,7 @@ Based on the formula from the piranha paper: α = cos⁻¹(ΣXY/√(Σ(X)²Σ(Y)
 Smaller angles indicate greater similarity between spectra.
 
 ## Identifying patch types and individuals for analysis
-```{r}
+```{r step8}
 # Defining our patch types (colors) and individual identifiers (repeats)
 patch_types <- c("black", "white", "orange", "blue")  # The four patch types
 individuals <- c("01", "02", "03", "04")              # The four individuals (repeats)
@@ -212,7 +212,7 @@ for(patch in patch_types)
 
 
 ## Calculating mean spectra for each patch type
-```{r}
+```{r step9}
 patch_means <- data.frame(wavelength = df$wavelength)  # Starting with wavelength column
 for(patch in patch_types) 
 {
@@ -225,7 +225,7 @@ for(patch in patch_types)
 ```
 
 ## PLOT 1: Mean spectra for each patch type
-```{r}
+```{r step10}
 # Defining colors for plotting that match the patch types
 colors <- c("black", "gray", "orange", "blue")
 
@@ -281,7 +281,7 @@ Importance:
 
 
 ## Calculating spectral angles between different patch types
-```{r}
+```{r step11}
 # This quantifies how different each patch type is from the others
 cat("Spectral angles between patch types (in radians):\n")
 
@@ -340,7 +340,7 @@ Importance:
 
 
 ## Calculating within-patch variation
-```{r}
+```{r step12}
 # This measures how much variation exists within the same patch type across different individuals
 within_variation <- list()
 for(patch in patch_types) 
@@ -373,7 +373,7 @@ for(patch in patch_types)
 ```
 
 ## Calculating between-patch variation
-```{r}
+```{r step13}
 # This measures how different patch types are within the same individual
 # (For example, how different is black from blue on individual 01)
 between_variation <- list()
@@ -407,7 +407,7 @@ for(ind in individuals)
 ```
 
 ## PLOT 2: Boxplot of variation within vs. between patches
-```{r}
+```{r step14}
 # Preparing data for boxplot by flattening the lists
 within_all <- unlist(within_variation)    # Combining all within-patch angles
 between_all <- unlist(between_variation)  # Combining all between-patch angles
@@ -430,7 +430,7 @@ boxplot(Angle ~ Variation,               # Formula: Angle grouped by Variation t
 Within-patch variation is significantly lower than between-patch variation.
 
 ## Calculating summary statistics for variation
-```{r}
+```{r step15}
 # Printing summary stats for within-patch variation
 cat("\nSummary of within-patch variation:\n")
 within_summary <- summary(within_all)
@@ -469,7 +469,7 @@ What this tells us:
 
 
 ## PLOT 3: Spectral angles heatmap
-```{r}
+```{r step16}
 # Creating a matrix of all pairwise spectral angle comparisons
 # First, getting all column names that contain patch measurements
 all_columns <- c()
@@ -548,7 +548,7 @@ Importance:
 * The hierarchical clustering provides an unbiased grouping method.
 
 ## PLOT 4: Individual variation by patch type
-```{r}
+```{r step17}
 # Setting up a 2x2 grid for plotting the 4 patch types
 par(mfrow=c(2,2))  # 2 rows, 2 columns of plots
 
@@ -622,7 +622,7 @@ Importance:
 
 
 ## Summary statistics by patch type and individual
-```{r}
+```{r step18}
 # Calculating and displaying the average spectral angle within each patch type
 cat("\nAverage spectral angle within each patch type:\n")
 for(patch in patch_types) 
@@ -704,3 +704,4 @@ Basically: how much variation is being explained by individuals, repeated measur
 
 * This process was repeated across a total of 5 imaging sessions, resulting in 5 repeat measurements for each fish.
 
+## BOXPLOTS & then ANOVA
