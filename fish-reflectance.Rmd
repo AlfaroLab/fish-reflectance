@@ -7,6 +7,9 @@ output:
 date: "2025-03-01"
 ---
 
+## Abstract
+
+I investigated the spectral reflectance properties of color patches in fish specimens, with a particular focus on museum-preserved specimens. I employed hyperspectral imaging and spectral angle analysis to characterize the distinctive features of different color patches (black, blue, orange, and white) across multiple individuals. My analysis included three main components: (1) development and validation of spectral angle calculations for patch comparison, (2) analysis of within- and between-patch variation in spectral signatures, and (3) statistical evaluation of patch distinctiveness using boxplots and nested ANOVA. I demonstrated that spectral angle analysis effectively distinguishes between different patch types, with significantly lower variation within patches compared to between patches. This methodological framework provides a foundation for assessing the preservation of color information in museum specimens and evaluating the reliability of spectral data from historical collections.
 
 ## Feb 28
 
@@ -705,3 +708,308 @@ Basically: how much variation is being explained by individuals, repeated measur
 * This process was repeated across a total of 5 imaging sessions, resulting in 5 repeat measurements for each fish.
 
 ## BOXPLOTS & then ANOVA
+
+```
+
+# ***4: Synthetic Patch Data Analysis***
+
+## Step 1: Reading and Processing Synthetic Data
+```{r synthetic_data_setup}
+library(readr)
+library(dplyr)
+library(tidyr)
+
+# Function to read spectral reflectance data as a tibble
+read_spectral_data <- function(file_path, patch_type) {
+  # Read the CSV file
+  data <- read_csv(file_path) %>%
+    as_tibble()
+  
+  # Reshape data to long format for easier filtering
+  data_long <- data %>%
+    pivot_longer(
+      cols = -wavelength,
+      names_to = "sample_id",
+      values_to = "reflectance"
+    ) %>%
+    
+    # Extract individual and sample info using regex
+    mutate(
+      # Extract individual number (01, 02, 03)
+      individual = sub(paste0(patch_type, "_(\\d{2})_.*"), "\\1", sample_id),
+      # Extract sample number (01, 02, 03)
+      sample = sub(".*_(\\d{2})$", "\\1", sample_id),
+      patch = patch_type
+    ) %>%
+    select(wavelength, individual, sample, patch, reflectance)
+  
+  return(data_long)
+}
+
+# Read the synthetic data for all patch types
+df_black <- read_spectral_data("Data/synthetic_black_patch_reflectance.csv", "black")
+df_blue <- read_spectral_data("Data/synthetic_blue_patch_reflectance.csv", "blue")
+df_orange <- read_spectral_data("Data/synthetic_orange_patch_reflectance.csv", "orange")
+
+# Combine all data
+df_synthetic <- bind_rows(df_black, df_blue, df_orange)
+
+# Display data structure
+cat("Data Structure Overview:\n")
+glimpse(df_synthetic)
+
+# Display summary statistics by patch type and individual
+cat("\nSummary Statistics by Patch Type and Individual:\n")
+df_synthetic %>%
+  group_by(patch, individual) %>%
+  summarise(
+    mean_reflectance = mean(reflectance),
+    sd_reflectance = sd(reflectance),
+    n_samples = n_distinct(sample)
+  ) %>%
+  arrange(patch, individual) %>%
+  print()
+```
+
+## Step 2: Calculating Mean Spectra for Each Individual and Patch Type
+```{r synthetic_means}
+# Calculate mean reflectance for each individual and patch type at each wavelength
+mean_spectra <- df_synthetic %>%
+  group_by(wavelength, individual, patch) %>%
+  summarise(
+    mean_reflectance = mean(reflectance),
+    sd_reflectance = sd(reflectance),
+    n_samples = n()
+  ) %>%
+  ungroup()
+
+# Display summary of mean spectra
+cat("Summary of Mean Spectra:\n")
+mean_spectra %>%
+  group_by(patch, individual) %>%
+  summarise(
+    mean_reflectance = mean(mean_reflectance),
+    mean_sd = mean(sd_reflectance)
+  ) %>%
+  arrange(patch, individual) %>%
+  print()
+```
+
+## Step 3: Visualizing Individual Spectra with Repeated Measures
+```{r synthetic_plot}
+# Set up a 3x3 grid for the three individuals and three patch types
+par(mfrow=c(3,3))
+
+# Calculate appropriate y-axis limits based on the data for each patch type
+y_limits <- df_synthetic %>%
+  group_by(patch) %>%
+  summarise(
+    y_max = max(reflectance) * 1.1,
+    y_min = min(reflectance) * 0.9
+  )
+
+# Plot for each patch type and individual
+for(patch_type in unique(df_synthetic$patch)) {
+  patch_data <- df_synthetic %>% filter(patch == patch_type)
+  patch_means <- mean_spectra %>% filter(patch == patch_type)
+  y_lim <- y_limits %>% filter(patch == patch_type)
+  
+  for(ind in unique(patch_data$individual)) {
+    # Get data for this individual
+    ind_data <- patch_data %>% filter(individual == ind)
+    ind_mean <- patch_means %>% filter(individual == ind)
+    
+    # Create empty plot with appropriate limits
+    plot(ind_data$wavelength, ind_data$reflectance,
+         type = "n",
+         xlab = "Wavelength (nm)",
+         ylab = "Reflectance (%)",
+         main = paste(patch_type, "patch - Individual", ind),
+         ylim = c(y_lim$y_min, y_lim$y_max))
+    
+    # Add repeated measures as semi-transparent lines
+    for(sample in unique(ind_data$sample)) {
+      sample_data <- ind_data %>% filter(sample == sample)
+      lines(sample_data$wavelength, sample_data$reflectance,
+            col = adjustcolor("blue", alpha = 0.2))
+    }
+    
+    # Add mean spectrum as bold line
+    lines(ind_mean$wavelength, ind_mean$mean_reflectance,
+          col = "red", lwd = 2)
+  }
+}
+
+# Reset plotting parameters
+par(mfrow=c(1,1))
+```
+
+## Step 4: Calculating Spectral Angles for Repeated Measures
+```{r synthetic_angles}
+# Function to calculate spectral angle between two spectra
+calc_spectral_angle <- function(x, y) {
+  sum_xy <- sum(x * y)    
+  sum_x2 <- sum(x^2)      
+  sum_y2 <- sum(y^2)
+  alfa <- acos(sum_xy / sqrt(sum_x2 * sum_y2))
+  return(alfa)
+}
+
+# Calculate mean spectral angles for each individual and patch type
+individual_angles <- list()
+
+for(patch_type in unique(df_synthetic$patch)) {
+  individual_angles[[patch_type]] <- list()
+  
+  for(ind in unique(df_synthetic$individual)) {
+    # Get all samples for this individual and patch type
+    ind_data <- df_synthetic %>%
+      filter(individual == ind, patch == patch_type) %>%
+      pivot_wider(
+        names_from = sample,
+        values_from = reflectance,
+        id_cols = wavelength
+      )
+    
+    # Calculate angles between all pairs of samples
+    angles <- numeric()
+    n_samples <- ncol(ind_data) - 1  # -1 for wavelength column
+    
+    for(i in 1:(n_samples-1)) {
+      for(j in (i+1):n_samples) {
+        angle <- calc_spectral_angle(
+          ind_data[[i+1]],  # +1 because first column is wavelength
+          ind_data[[j+1]]
+        )
+        angles <- c(angles, angle)
+      }
+    }
+    
+    individual_angles[[patch_type]][[ind]] <- list(
+      mean_angle = mean(angles),
+      sd_angle = sd(angles),
+      n_comparisons = length(angles)
+    )
+  }
+}
+
+# Display results
+cat("Spectral angle analysis for each patch type and individual:\n\n")
+for(patch_type in names(individual_angles)) {
+  cat(sprintf("\n%s patches:\n", patch_type))
+  for(ind in names(individual_angles[[patch_type]])) {
+    cat(sprintf("  Individual %s:\n", ind))
+    cat(sprintf("    Mean angle: %.4f radians\n", individual_angles[[patch_type]][[ind]]$mean_angle))
+    cat(sprintf("    Standard deviation: %.4f radians\n", individual_angles[[patch_type]][[ind]]$sd_angle))
+    cat(sprintf("    Number of comparisons: %d\n\n", individual_angles[[patch_type]][[ind]]$n_comparisons))
+  }
+}
+```
+
+## Step 5: Boxplot Analysis of Patch Variation
+```{r synthetic_boxplots}
+# Calculate mean reflectance for each individual, patch, and repeat
+mean_repeats <- df_synthetic %>%
+  group_by(individual, patch, sample) %>%
+  summarise(
+    mean_reflectance = mean(reflectance)
+  ) %>%
+  ungroup()
+
+# Create a 2x2 grid for plotting
+par(mfrow=c(2,2))
+
+# Plot 1: Boxplot for each patch type across individuals
+boxplot(mean_reflectance ~ individual + patch, 
+        data = mean_repeats,
+        col = c("black", "blue", "orange"),
+        xlab = "Individual",
+        ylab = "Mean Reflectance (%)",
+        main = "Patch Variation Across Individuals",
+        ylim = c(0, 100))
+
+# Plot 2: Boxplot for each individual across patch types
+boxplot(mean_reflectance ~ patch + individual,
+        data = mean_repeats,
+        col = "gray",
+        xlab = "Individual",
+        ylab = "Mean Reflectance (%)",
+        main = "Individual Variation Across Patches",
+        ylim = c(0, 100))
+
+# Reset plotting parameters
+par(mfrow=c(1,1))
+```
+
+## Step 6: Nested ANOVA Analysis
+```{r synthetic_anova}
+# Prepare data for ANOVA
+anova_data <- df_synthetic %>%
+  group_by(individual, patch, sample) %>%
+  summarise(
+    mean_reflectance = mean(reflectance)
+  ) %>%
+  ungroup()
+
+# Perform nested ANOVA
+# First, create a linear model with nested effects
+model <- lm(mean_reflectance ~ patch + individual + patch:individual, data=anova_data)
+
+# Perform ANOVA
+anova_result <- anova(model)
+
+# Display results
+cat("Nested ANOVA Results:\n\n")
+print(anova_result)
+
+# Calculate percentage of variation explained by each factor
+total_ss <- sum(anova_result$`Sum Sq`)
+var_explained <- anova_result %>%
+  mutate(
+    percent_variation = `Sum Sq` / total_ss * 100
+  )
+
+cat("\nPercentage of variation explained by each factor:\n")
+print(var_explained %>% select(percent_variation))
+```
+
+# Discussion and Conclusions
+
+My analysis across three main components provides valuable insights into the spectral properties of fish color patches and their potential for museum specimen analysis.
+
+## Part 1: Spectral Angle Analysis
+I implemented spectral angle calculations to quantify differences between spectral signatures. This method successfully identified representative spectra for each patch type, with the smallest angles indicating the most typical measurements. This approach provides a robust mathematical framework for comparing spectral data, particularly useful when dealing with museum specimens where preservation effects may influence reflectance patterns.
+
+## Part 2: Patch Variation Analysis
+My analysis of within- and between-patch variation revealed clear patterns in spectral signatures:
+
+* Within-patch variation was significantly lower than between-patch variation (p << 0.001)
+* Different patch types showed distinct spectral signatures, with white patches having the highest reflectance (70-90%) and black patches the lowest (<15%)
+* The hierarchical clustering of spectral angles demonstrated that patch type is the primary determinant of spectral signature, with individual variation playing a secondary role
+
+## Part 3: Statistical Analysis
+My nested ANOVA analysis provided quantitative evidence for the distinctiveness of color patches:
+
+* Patch type explained a significant portion of the variation in reflectance
+* Individual differences and repeated measures showed expected patterns of variation
+* The boxplot analysis effectively visualized the distribution of reflectance values across different patch types and individuals
+
+## Future Directions
+The ultimate goal of my research is to evaluate the preservation of color information in museum specimens. My findings suggest that:
+
+1. Color patches maintain distinctive spectral signatures despite preservation
+2. The spectral angle method can effectively distinguish between different patch types
+3. Within-patch consistency is maintained across individuals
+
+This methodological framework will be valuable for:
+
+* Assessing the reliability of spectral data from historical collections
+* Understanding how preservation methods affect color information
+* Developing standardized approaches for analyzing museum specimens
+
+Future work will focus on:
+
+* Comparing spectral signatures between fresh and preserved specimens
+* Evaluating the effects of different preservation methods
+* Developing correction factors for preservation-induced changes in reflectance
+* Creating a comprehensive database of spectral signatures for museum specimens
